@@ -237,7 +237,7 @@ def Main():
 
         # Default Values (Modify Them as you need)
         else:
-            threads = 2
+            threads = 0
             lookup = 1
             timeOut = 2
             px = {}
