@@ -59,6 +59,7 @@ class output:
 
 def urlfix(url):
     'Url Fixer'
+    url = url[:url.rindex('/')] if '/' in url[-1] else url
     return url.replace('https://', '').replace('http://', '').replace('/', '')
 
 
@@ -90,7 +91,7 @@ def yougetsignal(target):
 def hackertarget(target):
     'Function for Reverse Domain Lookup (HackerTarget)'
 
-    api = "http://api.hackertarget.com/reverseiplookup/?q=" + target
+    api = "http://api.hackertarget.com/reverseiplookup/?q=%s" %target
     request = requests.get(api, headers=ua, timeout=timeOut, proxies=px)
     results = request.text.split('\n')
     QueueFiller(results)
@@ -101,7 +102,7 @@ def hackertarget(target):
 def ViewDns(target):
     'Function for Reverse Domain Lookup (ViewDNS)'
 
-    url = "http://viewdns.info/reverseip/?t=1&host=" + target
+    url = "http://viewdns.info/reverseip/?t=1&host=%s" %target
     request = requests.get(url, headers=ua, timeout=timeOut, proxies=px)
     data = request.text
     results = re.findall('<td>(.+?\..+?)</td>', data)
@@ -109,6 +110,16 @@ def ViewDns(target):
     QueueFiller(results)
 
     return [request.status_code, len(results)]
+
+def ViewDnsApi(target,Key):
+    'Function for Reverse Domain Lookup (View DNS Using API)'
+    url = "https://api.viewdns.info/reverseip/?host=%s&apikey=%s&output=json" %(target,Key)
+    request = requests.get(url, headers=ua, timeout=timeOut, proxies=px)
+    data = json.loads(request.text)
+    results = [i['name'] for i in data['response']['domains']]
+    QueueFiller(results)
+
+    return [request.status_code,data['response']['domain_count']]
 
 
 def QueueFiller(urls):
@@ -159,18 +170,21 @@ def CheckAdmin(queue):
     queue.task_done()
 
 
-def action(target, ConnPerSec, lookup):
+def action(target, ConnPerSec, lookup,key=None):
     'Function Performing Action Task'
     target_ip = socket.gethostbyname(target)
     if lookup == 1:
-        Response = yougetsignal(target)
+        Response = yougetsignal(target_ip)
         scanner = "YouGetSignal"
     elif lookup == 2:
-        Response = hackertarget(target)
+        Response = hackertarget(target_ip)
         scanner = "HackerTarget"
     elif lookup == 3:
-        Response = ViewDns(target)
+        Response = ViewDns(target_ip)
         scanner = "ViewDNS"
+    elif lookup == 4:
+        Response = ViewDnsApi(target_ip,key)
+        scanner = "ViewDNS (Using API)"
 
     ServerStatus = Response[0]
     Domains = Response[1]
@@ -215,12 +229,16 @@ def Main():
         # Check for Custom options :D
         if (raw_input("Do you want custom options ('N' for default options) [Y/N]:").lower() == 'y'):
             threads = int(input("No Of Threads (0 for non-thread mod): "))
-            timeOut = int(input("Request Timeout Seconds: "))
+            timeOut = int(input("Timeout Seconds: "))
             lookup = int(
-                input("1. yougetsignal\n2. hackertarget\n3. View Dns\nServer? > "))
+                input("1. yougetsignal\n2. hackertarget\n3. View Dns\n4. View Dns (Using API)\n> "))
+            if lookup == 4:
+                ApiKey = raw_input("Enter Your Api Key: ")
+            else:
+                ApiKey = None
             # proxy input
             if (raw_input("Do you want to use proxy? [Y/N]: ").lower() == 'y'):
-                if (raw_input("Want to use TOR proxy? [Y/N]: ").lower() == 'y'):
+                if (raw_input("Want to use TOR? [Y/N]: ").lower() == 'y'):
                     Px_proto = 'http'
                     Px_ip = 'socks5://127.0.0.1'
                     Px_port = 9050
@@ -237,13 +255,13 @@ def Main():
 
         # Default Values (Modify Them as you need)
         else:
-            threads = 0
+            threads = 2
             lookup = 1
             timeOut = 2
             px = {}
 
         t1 = time.time()  # startTime
-        action(site, threads, lookup)
+        action(site, threads, lookup, ApiKey)
         t2 = time.time()  # endTime
 
         print('Task Complete..%s' % (' ' * 18))
