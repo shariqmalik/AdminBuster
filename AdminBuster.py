@@ -259,6 +259,7 @@ def Main():
             lookup = 1
             timeOut = 2
             px = {}
+            ApiKey = None
 
         t1 = time.time()  # startTime
         action(site, threads, lookup, ApiKey)
