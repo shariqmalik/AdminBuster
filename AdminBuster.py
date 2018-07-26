@@ -76,7 +76,7 @@ def exportData(target, scanner):
 def yougetsignal(target):
     'Function for Reverse Domain Lookup (YouGetSignal)'
 
-    url = "http://domains.yougetsignal.com/domains.php"
+    url = "https://domains.yougetsignal.com/domains.php"
     postdata = {'remoteAddress': target, 'key': ''}
     r = requests.post(url, params=postdata, headers=ua,
                       timeout=timeOut, proxies=px)
